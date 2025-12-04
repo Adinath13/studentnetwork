@@ -177,6 +177,7 @@ const getUsersForMessaging = async (req, res) => {
     }
 
     try {
+        console.log(`💬 Fetching chat users for: ${req.user.name} (${req.user.role})`);
         let relatedUserIds = [];
 
         if (req.user.role === 'student') {
@@ -185,6 +186,7 @@ const getUsersForMessaging = async (req, res) => {
                 student: req.user._id,
                 status: 'active'
             });
+            console.log(`   Found ${mentorships.length} active mentorships as student`);
             relatedUserIds = mentorships.map(m => m.mentor);
         } else if (req.user.role === 'alumni') {
             // Mentors can only chat with their active mentees
@@ -192,27 +194,20 @@ const getUsersForMessaging = async (req, res) => {
                 mentor: req.user._id,
                 status: 'active'
             });
+            console.log(`   Found ${mentorships.length} active mentorships as mentor`);
             relatedUserIds = mentorships.map(m => m.student);
         } else if (req.user.role === 'tpo') {
-            // TPO might need to chat with everyone? Or maybe just Alumni?
-            // For now, let's allow TPO to see Alumni and Students?
-            // User requirement: "Messaging support for mentor–student communication"
-            // It doesn't explicitly say TPO needs to chat. But TPO verifies requests.
-            // Let's assume TPO can chat with Alumni for verification?
-            // "The module includes... Messaging support for mentor–student communication"
-            // It implies TPO might NOT be in the chat loop.
-            // But to be safe, I'll return empty for TPO for now unless specified otherwise, or maybe all Alumni?
-            // Let's stick to the strict "Mentor-Student" requirement.
-            // If TPO tries to fetch users, they get none for now.
             relatedUserIds = [];
         }
 
         const users = await User.find({
             _id: { $in: relatedUserIds }
-        }).select('name email role');
+        }).select('name email role profilePicture'); // Added profilePicture
 
+        console.log(`   Returning ${users.length} users for messaging`);
         res.status(200).json(users);
     } catch (error) {
+        console.error('❌ Error fetching chat users:', error);
         res.status(500).json({ message: error.message });
     }
 };

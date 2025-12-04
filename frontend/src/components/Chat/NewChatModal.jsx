@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '../../context/ChatContext';
-import axios from 'axios';
-import { X, Search } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+import axios from '../../utils/axios';
+import { Search } from 'lucide-react';
+import Modal from '../Modal';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const NewChatModal = ({ isOpen, onClose }) => {
     const [users, setUsers] = useState([]);
@@ -20,10 +20,7 @@ const NewChatModal = ({ isOpen, onClose }) => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const config = {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            };
-            const { data } = await axios.get(`${API_URL}/api/chat/users`, config);
+            const { data } = await axios.get('/chat/users');
             setUsers(data);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -43,61 +40,55 @@ const NewChatModal = ({ isOpen, onClose }) => {
         user.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (!isOpen) return null;
-
     return (
-        <div className="modal-backdrop" onClick={onClose}>
-            <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2>Start New Chat</h2>
-                    <button className="modal-close-btn" onClick={onClose}>
-                        <X size={24} />
-                    </button>
+        <Modal isOpen={isOpen} onClose={onClose} title="Start New Chat" size="md">
+            <div className="space-y-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Search users by name or role..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        autoFocus
+                    />
                 </div>
 
-                <div className="modal-body">
-                    <div className="search-container">
-                        <Search className="search-icon" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search users by name or role..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="modal-search-input"
-                            autoFocus
-                        />
+                {loading ? (
+                    <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                     </div>
-
-                    {loading ? (
-                        <div className="loading-state">
-                            <p>Loading users...</p>
-                        </div>
-                    ) : (
-                        <div className="users-list">
-                            {filteredUsers.length === 0 ? (
-                                <p className="no-users">No users found</p>
-                            ) : (
-                                filteredUsers.map((user) => (
-                                    <div
-                                        key={user._id}
-                                        className="user-card"
-                                        onClick={() => handleStartChat(user._id)}
-                                    >
-                                        <div className="user-avatar">
+                ) : (
+                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+                        {filteredUsers.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <p>No users found</p>
+                            </div>
+                        ) : (
+                            filteredUsers.map((user) => (
+                                <div
+                                    key={user._id}
+                                    className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                                    onClick={() => handleStartChat(user._id)}
+                                >
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarImage src={user.profilePicture} alt={user.name} />
+                                        <AvatarFallback className="bg-indigo-100 text-indigo-600">
                                             {user.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="user-info">
-                                            <h3 className="user-name">{user.name}</h3>
-                                            <span className="user-role">{user.role}</span>
-                                        </div>
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                        <h3 className="font-medium text-gray-900">{user.name}</h3>
+                                        <span className="text-sm text-gray-500 capitalize">{user.role}</span>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    )}
-                </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
-        </div>
+        </Modal>
     );
 };
 
