@@ -3,7 +3,6 @@ const router = express.Router();
 const {
     getJobs,
     createJob,
-    createJob,
     deleteJob,
     applyForJob,
     getJobApplications
