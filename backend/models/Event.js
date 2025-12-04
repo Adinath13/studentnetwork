@@ -27,13 +27,23 @@ const eventSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    attendees: [
-        {
+    // People who have registered for the event
+    registrations: [{
+        user: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'User'
+        },
+        registeredAt: {
+            type: Date,
+            default: Date.now
         }
-    ],
-    bannerUrl: {
+    }],
+    // Keep attendees for backward compatibility if needed, or just use registrations
+    attendees: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    bannerImage: {
         type: String,
         default: 'https://placehold.co/800x400?text=Event+Banner',
     }

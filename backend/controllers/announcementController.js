@@ -48,8 +48,33 @@ const deleteAnnouncement = async (req, res) => {
     }
 };
 
+// @desc    Update announcement
+// @route   PUT /api/announcements/:id
+// @access  Private (Admin/TPO)
+const updateAnnouncement = async (req, res) => {
+    try {
+        let announcement = await Announcement.findById(req.params.id);
+        if (!announcement) return res.status(404).json({ message: 'Not found' });
+
+        if (announcement.postedBy.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        announcement = await Announcement.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+
+        res.json(announcement);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     getAnnouncements,
     createAnnouncement,
-    deleteAnnouncement
+    deleteAnnouncement,
+    updateAnnouncement
 };

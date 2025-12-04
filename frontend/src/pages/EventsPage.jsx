@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react';
 import axios from '../utils/axios';
-import { Calendar, MapPin, Clock } from 'lucide-react';
+import { Calendar, MapPin, Clock, Trash2, Users, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import EventRegistrationsModal from '../components/Event/EventRegistrationsModal';
 
 const EventsPage = () => {
     const [events, setEvents] = useState([]);
     const { user } = useAuth();
     const [showModal, setShowModal] = useState(false);
+    const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState(null);
     const [newEvent, setNewEvent] = useState({
         title: '',
         description: '',
         date: '',
         location: '',
-        type: 'webinar'
+        type: 'webinar',
+        bannerImage: ''
     });
 
     useEffect(() => {
@@ -34,9 +38,22 @@ const EventsPage = () => {
         try {
             await axios.post('/events', newEvent);
             setShowModal(false);
+            setNewEvent({ title: '', description: '', date: '', location: '', type: 'webinar', bannerImage: '' });
             fetchEvents();
         } catch (error) {
             console.error(error);
+            alert('Error creating event');
+        }
+    };
+
+    const handleDeleteEvent = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this event?')) return;
+        try {
+            await axios.delete(`/events/${id}`);
+            fetchEvents();
+        } catch (error) {
+            console.error(error);
+            alert('Error deleting event');
         }
     };
 
@@ -50,6 +67,13 @@ const EventsPage = () => {
         }
     };
 
+    const openRegistrations = (event) => {
+        setSelectedEvent(event);
+        setShowRegistrationsModal(true);
+    };
+
+    const canManageEvents = ['admin', 'tpo'].includes(user?.role);
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -57,7 +81,7 @@ const EventsPage = () => {
                 {['admin', 'alumni', 'tpo'].includes(user?.role) && (
                     <button
                         onClick={() => setShowModal(true)}
-                        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-indigo-700"
+                        className="px-4 py-2 bg-primary text-white rounded-md font-medium"
                     >
                         Create Event
                     </button>
@@ -65,8 +89,8 @@ const EventsPage = () => {
             </div>
 
             {showModal && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-4">Create New Event</h2>
                         <form onSubmit={handleCreateEvent} className="space-y-4">
                             <input
@@ -99,7 +123,21 @@ const EventsPage = () => {
                                 onChange={e => setNewEvent({ ...newEvent, location: e.target.value })}
                                 required
                             />
-                            <div className="flex justify-end space-x-2">
+                            <div className="space-y-1">
+                                <label className="text-sm text-gray-600">Banner Image URL</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        placeholder="https://example.com/image.jpg"
+                                        className="w-full border p-2 rounded"
+                                        value={newEvent.bannerImage}
+                                        onChange={e => setNewEvent({ ...newEvent, bannerImage: e.target.value })}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-500">Leave empty for default banner</p>
+                            </div>
+
+                            <div className="flex justify-end space-x-2 pt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
@@ -119,15 +157,37 @@ const EventsPage = () => {
                 </div>
             )}
 
+            <EventRegistrationsModal
+                isOpen={showRegistrationsModal}
+                onClose={() => setShowRegistrationsModal(false)}
+                eventId={selectedEvent?._id}
+                eventTitle={selectedEvent?.title}
+            />
+
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {events.map((event) => (
-                    <div key={event._id} className="bg-white overflow-hidden shadow rounded-lg flex flex-col">
-                        <div className="h-48 bg-gray-200 w-full object-cover">
-                            <img src={event.bannerUrl} alt={event.title} className="w-full h-full object-cover" />
+                    <div key={event._id} className="bg-white overflow-hidden shadow rounded-lg flex flex-col group">
+                        <div className="h-48 bg-gray-200 w-full relative">
+                            <img
+                                src={event.bannerImage || event.bannerUrl || 'https://placehold.co/800x400?text=Event+Banner'}
+                                alt={event.title}
+                                className="w-full h-full object-cover"
+                            />
+                            {canManageEvents && (
+                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handleDeleteEvent(event._id)}
+                                        className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-sm"
+                                        title="Delete Event"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div className="p-5 flex-1 flex flex-col">
                             <div className="flex-1">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-primary mb-2">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-primary mb-2 capitalize">
                                     {event.type}
                                 </span>
                                 <h3 className="text-xl font-semibold text-gray-900">{event.title}</h3>
@@ -142,18 +202,32 @@ const EventsPage = () => {
                                     <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                                     {event.location}
                                 </div>
+                                {canManageEvents && (
+                                    <div className="flex items-center text-sm text-indigo-600 font-medium cursor-pointer hover:text-indigo-800" onClick={() => openRegistrations(event)}>
+                                        <Users className="flex-shrink-0 mr-1.5 h-4 w-4" />
+                                        {event.registrations?.length || event.attendees?.length || 0} Registered
+                                    </div>
+                                )}
                             </div>
-                            <div className="mt-6">
+                            <div className="mt-6 flex gap-2">
                                 <button
                                     onClick={() => handleRegister(event._id)}
-                                    disabled={event.attendees.includes(user?._id)}
-                                    className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${event.attendees.includes(user?._id)
+                                    disabled={event.registrations?.some(r => r.user === user?._id) || event.attendees?.includes(user?._id)}
+                                    className={`flex-1 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${(event.registrations?.some(r => r.user === user?._id) || event.attendees?.includes(user?._id))
                                             ? 'bg-green-600 hover:bg-green-700 cursor-default'
                                             : 'bg-primary hover:bg-indigo-700'
                                         }`}
                                 >
-                                    {event.attendees.includes(user?._id) ? 'Registered' : 'Register Now'}
+                                    {(event.registrations?.some(r => r.user === user?._id) || event.attendees?.includes(user?._id)) ? 'Registered' : 'Register Now'}
                                 </button>
+                                {canManageEvents && (
+                                    <button
+                                        onClick={() => openRegistrations(event)}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Manage
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

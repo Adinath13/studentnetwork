@@ -40,7 +40,25 @@ const jobSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true,
-    }
+    },
+    applications: [{
+        student: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        resumeLink: {
+            type: String
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'reviewed', 'accepted', 'rejected'],
+            default: 'pending'
+        },
+        appliedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Job', jobSchema);

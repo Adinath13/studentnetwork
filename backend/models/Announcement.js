@@ -19,6 +19,11 @@ const announcementSchema = new mongoose.Schema({
         enum: ['all', 'alumni', 'student', 'tpo'],
         default: 'all',
     },
+    type: {
+        type: String,
+        enum: ['announcement', 'news'],
+        default: 'announcement'
+    },
     isImportant: {
         type: Boolean,
         default: false,
