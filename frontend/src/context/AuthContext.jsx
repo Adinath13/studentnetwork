@@ -46,8 +46,7 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const { data } = await axios.post('/auth/register', userData);
-            localStorage.setItem('token', data.token);
-            setUser(data);
+            // No longer auto-login, just return the response with email
             return data;
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed');

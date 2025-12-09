@@ -5,25 +5,52 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2, Mail } from "lucide-react"
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [emailNotVerified, setEmailNotVerified] = useState(false);
+    const [isResending, setIsResending] = useState(false);
     const { login, error } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setEmailNotVerified(false);
         try {
             const user = await login(email, password);
             navigate(`/${user.role}-dashboard`);
         } catch (err) {
-            // Error handled in context
+            // Check if error is due to unverified email
+            if (err.response?.data?.emailNotVerified) {
+                setEmailNotVerified(true);
+            }
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        setIsResending(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                navigate('/registration-success', { state: { email } });
+            }
+        } catch (error) {
+            console.error('Resend error:', error);
+        } finally {
+            setIsResending(false);
         }
     };
 
@@ -85,6 +112,27 @@ const LoginPage = () => {
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Login
                             </Button>
+
+                            {emailNotVerified && (
+                                <Button
+                                    type="button"
+                                    onClick={handleResendVerification}
+                                    disabled={isResending}
+                                    className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 rounded-lg shadow-lg"
+                                >
+                                    {isResending ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Mail className="mr-2 h-4 w-4" />
+                                            Resend Verification Email
+                                        </>
+                                    )}
+                                </Button>
+                            )}
 
                         </form>
                     </CardContent>

@@ -30,6 +30,18 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false, // For alumni/students requiring admin/TPO approval if needed
     },
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
+    emailVerificationToken: {
+        type: String,
+        select: false,
+    },
+    emailVerificationExpires: {
+        type: Date,
+        select: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -48,6 +60,22 @@ userSchema.pre('save', async function (next) {
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate email verification token
+userSchema.methods.generateEmailVerificationToken = function () {
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+
+    this.emailVerificationToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+    // Token expires in 24 hours
+    this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+    return token;
 };
 
 module.exports = mongoose.model('User', userSchema);

@@ -31,8 +31,9 @@ const RegisterPage = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const user = await register(formData);
-            navigate(`/${user.role}-dashboard`);
+            const response = await register(formData);
+            // Redirect to registration success page with email
+            navigate('/registration-success', { state: { email: response.email || formData.email } });
         } catch (err) {
             // Error handled in context
         } finally {
@@ -134,4 +135,3 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
-
