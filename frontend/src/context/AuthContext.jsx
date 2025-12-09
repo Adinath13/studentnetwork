@@ -65,8 +65,23 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const refreshUser = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const { data } = await axios.get('/auth/me');
+                setUser(data);
+                return data;
+            } catch (err) {
+                console.error('Error refreshing user:', err);
+                return null;
+            }
+        }
+        return null;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, error, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, error, login, register, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );
