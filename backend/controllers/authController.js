@@ -46,13 +46,13 @@ const registerUser = async (req, res) => {
             const verificationToken = user.generateEmailVerificationToken();
             await user.save();
 
-            // Send verification email
+            // Try to send verification email
             try {
                 const emailResult = await sendVerificationEmail(user.email, user.name, verificationToken);
 
                 if (emailResult.success) {
-                    console.log('✅ User registered successfully with email verification:', { id: user._id, email: user.email, role: user.role });
-
+                    // Email sent successfully
+                    console.log('✅ Verification email sent successfully');
                     res.status(201).json({
                         success: true,
                         message: 'Registration successful! Please check your email to verify your account.',
@@ -60,18 +60,11 @@ const registerUser = async (req, res) => {
                         requiresVerification: true,
                     });
                 } else if (emailResult.error === 'EMAIL_NOT_CONFIGURED') {
-                    // Email service not configured - allow registration without verification
-                    console.log('⚠️ User registered without email verification (email service not configured):', { id: user._id, email: user.email, role: user.role });
-
-                    // Auto-verify the user since we can't send email
-                    user.isEmailVerified = true;
-                    user.emailVerificationToken = undefined;
-                    user.emailVerificationExpires = undefined;
-                    await user.save();
-
+                    // Email service not configured - user stays unverified but can login
+                    console.warn('⚠️ Email service not configured. User registered but unverified.');
                     res.status(201).json({
                         success: true,
-                        message: 'Registration successful! You can now log in.',
+                        message: 'Registration successful! Email verification is currently unavailable. You can login and verify later.',
                         email: user.email,
                         requiresVerification: false,
                         token: generateToken(user._id),
@@ -80,21 +73,15 @@ const registerUser = async (req, res) => {
                             name: user.name,
                             email: user.email,
                             role: user.role,
+                            isEmailVerified: false,
                         }
                     });
                 } else {
-                    // Email sending failed for other reasons
+                    // Email sending failed - user stays unverified but can login
                     console.error('❌ Failed to send verification email:', emailResult);
-
-                    // Auto-verify the user as fallback
-                    user.isEmailVerified = true;
-                    user.emailVerificationToken = undefined;
-                    user.emailVerificationExpires = undefined;
-                    await user.save();
-
                     res.status(201).json({
                         success: true,
-                        message: 'Registration successful! Email verification unavailable. You can now log in.',
+                        message: 'Registration successful! Email verification is currently unavailable. You can login and verify later.',
                         email: user.email,
                         requiresVerification: false,
                         token: generateToken(user._id),
@@ -103,21 +90,16 @@ const registerUser = async (req, res) => {
                             name: user.name,
                             email: user.email,
                             role: user.role,
+                            isEmailVerified: false,
                         }
                     });
                 }
             } catch (emailError) {
-                // Unexpected error - auto-verify as fallback
+                // Unexpected error - user stays unverified but can login
                 console.error('❌ Unexpected error during email verification:', emailError);
-
-                user.isEmailVerified = true;
-                user.emailVerificationToken = undefined;
-                user.emailVerificationExpires = undefined;
-                await user.save();
-
                 res.status(201).json({
                     success: true,
-                    message: 'Registration successful! You can now log in.',
+                    message: 'Registration successful! Email verification is currently unavailable. You can login and verify later.',
                     email: user.email,
                     requiresVerification: false,
                     token: generateToken(user._id),
@@ -126,6 +108,7 @@ const registerUser = async (req, res) => {
                         name: user.name,
                         email: user.email,
                         role: user.role,
+                        isEmailVerified: false,
                     }
                 });
             }
