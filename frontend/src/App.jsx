@@ -10,6 +10,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import RegistrationSuccessPage from './pages/RegistrationSuccessPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import VerifyOTPPage from './pages/VerifyOTPPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import FAQPage from './pages/FAQPage';
@@ -50,6 +53,9 @@ function App() {
                         <Route path="/register" element={<RegisterPage />} />
                         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
                         <Route path="/registration-success" element={<RegistrationSuccessPage />} />
+                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                        <Route path="/verify-otp" element={<VerifyOTPPage />} />
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/about" element={<AboutPage />} />
                         <Route path="/contact" element={<ContactPage />} />
                         <Route path="/faq" element={<FAQPage />} />
