@@ -413,8 +413,77 @@ const sendOTPEmail = async (email, name, otp) => {
     }
 };
 
+// Notification email template
+const getNotificationEmailTemplate = (name, bodyContent, actionText = null, actionUrl = null) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification - Student Network</title>
+    <style>${getEmailStyles()}</style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>Student Network</h1>
+        </div>
+        
+        <div class="email-body">
+            <p class="greeting">Hello ${name},</p>
+            
+            ${bodyContent.split('\n').map(para => `<p>${para}</p>`).join('')}
+            
+            ${actionText && actionUrl ? `
+            <div class="button-container">
+                <a href="${actionUrl}" class="email-button">${actionText}</a>
+            </div>
+            ` : ''}
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">If you have any questions, feel free to reply to this email.</p>
+        </div>
+        
+        <div class="email-footer">
+            <p><strong>Student Network</strong></p>
+            <p>Connecting students, teachers, and mentors</p>
+            <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} Student Network. All rights reserved.</p>
+            <p style="font-size: 12px; color: #adb5bd;">Designed & Developed by ADINATH GORE</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
+
+// Send generic notification email
+const sendNotificationEmail = async (email, name, subject, bodyContent, actionText = null, actionUrl = null) => {
+    try {
+        if (!isEmailConfigured()) {
+            console.warn('⚠️ Email service not configured. Skipping notification email.');
+            return {
+                success: false,
+                error: 'EMAIL_NOT_CONFIGURED',
+                message: 'Email service is not configured'
+            };
+        }
+
+        const html = getNotificationEmailTemplate(name, bodyContent, actionText, actionUrl);
+
+        return await sendEmail(email, subject, html);
+    } catch (error) {
+        console.error('❌ Error sending notification email:', error);
+        return {
+            success: false,
+            error: 'EMAIL_SEND_FAILED',
+            message: error.message
+        };
+    }
+};
+
 module.exports = {
     sendVerificationEmail,
     sendOTPEmail,
+    sendNotificationEmail,
     isEmailConfigured,
 };
