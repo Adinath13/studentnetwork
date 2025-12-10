@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
+const brevo = require('@getbrevo/brevo');
 
 // Check if email service is configured
 const isEmailConfigured = () => {
@@ -9,10 +10,25 @@ const isEmailConfigured = () => {
         return process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '';
     }
 
+    if (emailService === 'brevo') {
+        return process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== '';
+    }
+
     // For Gmail/SMTP
     const hasEmailUser = process.env.EMAIL_USER && process.env.EMAIL_USER.trim() !== '';
     const hasEmailPassword = process.env.EMAIL_PASSWORD && process.env.EMAIL_PASSWORD.trim() !== '';
     return hasEmailUser && hasEmailPassword;
+};
+
+// Initialize Brevo client (lazy initialization)
+let brevoClient = null;
+const getBrevoClient = () => {
+    if (!brevoClient && process.env.BREVO_API_KEY) {
+        brevoClient = new brevo.TransactionalEmailsApi();
+        let apiKey = brevoClient.authentications['apiKey'];
+        apiKey.apiKey = process.env.BREVO_API_KEY;
+    }
+    return brevoClient;
 };
 
 // Initialize Resend client (lazy initialization)
@@ -320,6 +336,42 @@ const sendEmailViaResend = async (to, subject, html) => {
     }
 };
 
+// Send email using Brevo API
+const sendEmailViaBrevo = async (to, subject, html) => {
+    try {
+        const apiInstance = getBrevoClient();
+        const sendSmtpEmail = new brevo.SendSmtpEmail();
+
+        sendSmtpEmail.subject = subject;
+        sendSmtpEmail.htmlContent = html;
+        // Use configured sender or fallback. Brevo requires a verified sender.
+        // Assuming EMAIL_USER or EMAIL_FROM is a verified sender in Brevo.
+        sendSmtpEmail.sender = {
+            "name": "Student Network",
+            "email": process.env.EMAIL_FROM || process.env.EMAIL_USER
+        };
+        sendSmtpEmail.to = [{ "email": to }];
+
+        const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+        console.log('✅ Email sent via Brevo:', { to, id: data.messageId });
+        return {
+            success: true,
+            message: 'Email sent successfully',
+            id: data.messageId
+        };
+    } catch (error) {
+        console.error('❌ Brevo API error:', error);
+        // Extract meaningful error message if possible
+        const errorMessage = error.body ? JSON.stringify(error.body) : error.message;
+        return {
+            success: false,
+            error: 'EMAIL_SEND_FAILED',
+            message: errorMessage
+        };
+    }
+};
+
 // Send email using SMTP (Gmail)
 const sendEmailViaSMTP = async (to, subject, html) => {
     try {
@@ -356,6 +408,8 @@ const sendEmail = async (to, subject, html) => {
 
     if (emailService === 'resend') {
         return await sendEmailViaResend(to, subject, html);
+    } else if (emailService === 'brevo') {
+        return await sendEmailViaBrevo(to, subject, html);
     } else {
         return await sendEmailViaSMTP(to, subject, html);
     }
