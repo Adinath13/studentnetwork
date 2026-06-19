@@ -1,1 +1,1 @@
-mongodb+srv://adinathhanumantgore_db_user:rqSZw5DMChpP8PaC@cluster0.eyuoilj.mongodb.net/alumniprofiles?appName=Cluster0
+
