@@ -273,7 +273,3 @@ This project is licensed under the MIT License.
 
 Built with ❤️ by the Alumni Network Team
 
-## 📞 Support
-
-For support, email alumni@university.edu or visit our contact page.
-
